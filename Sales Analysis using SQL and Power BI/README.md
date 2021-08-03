@@ -1,3 +1,2 @@
 # Sales-Revenue-Dashboarding
-
 Imported data on to MySQL to perform data exploration and aggregations. Then loaded the data to PowerBI and performed transformations such as normalizing the sales revenue, converting sales in USD to INR. Normalized the currency unit by removing the duplicates. Performed filtering to remove negative values from the data. After the tranformation, I implemented a dashboard in PowerBI to report Total Revenue and Sales Quantity by Market. I also included Top 5 Products and Customers that are contributing to revenue. Finally a chart to show overall revenue Trend across all the years and by months.
