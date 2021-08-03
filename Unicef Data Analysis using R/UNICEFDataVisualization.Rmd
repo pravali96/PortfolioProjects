@@ -1,0 +1,223 @@
+---
+title: "hackathon"
+author: "Pravali U"
+date: "28/02/2021"
+output: pdf_document
+fig_width: 10 
+fig_height: 6
+---
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(extrafont)
+loadfonts(device = "win")
+library(corrplot)
+library(tidyr)
+library(data.table)
+library(scales)
+library(rio)
+library(readxl)
+library(lubridate)
+library(stringr)
+```
+
+
+
+```{r}
+data <- read_excel("Hackathon_Unicef_Dataset.xlsx", sheet=1)
+head(data)
+data<-transform(data, Value=as.numeric(Value))
+```
+
+
+```{r}
+req_indicators <- data %>% 
+  filter(data$Indicator == ("Pre-primary school participation - Gross enrolment ratio (%), male") | 
+  data$Indicator ==("Pre-primary school participation - Gross enrolment ratio (%), female")| 
+           data$Indicator==("Primary school participation - Net enrolment ratio (%), male") | 
+           data$Indicator == ("Primary school participation - Net enrolment ratio (%), female") |
+           data$Indicator ==("Lower secondary school participation - Net enrolment ratio (%), male") |
+           data$Indicator == ("Lower secondary school participation - Net enrolment ratio (%), female") |  
+           data$Indicator == ("Primary school participation - Out-of-school rate of children of primary school age (%), male")|
+           data$Indicator==("Primary school participation - Out-of-school rate of children of primary school age (%), female")|
+           data$Indicator==("Primary school participation - Survival rate to last primary grade (%) , male") |
+           data$Indicator==("Primary school participation - Survival rate to last primary grade (%) , female") |
+           data$Indicator==("Primary school net attendance ratio, Urban") |
+           data$Indicator==("Primary school net attendance ratio, Rural")
+         )
+
+req_regions <- req_indicators %>%
+  filter((Countries.and.areas=='Central African Republic') | 
+        (Countries.and.areas=='East Asia and Pacific')  |
+        (Countries.and.areas=='Europe and Central Asia') |
+        (Countries.and.areas=='Eastern Europe and Central Asia') |
+        (Countries.and.areas=='Western Europe') | 
+        (Countries.and.areas=='Middle East and North Africa') |
+        (Countries.and.areas=='Eastern and Southern Africa') | 
+        (Countries.and.areas=='West and Central Africa')
+          )
+
+pivot_data <- req_regions %>%
+  select(Countries.and.areas,Indicator, Value) %>%
+  pivot_wider(names_from = Indicator, values_from = Value )
+```
+
+
+```{r}
+# Selecting required columns
+req_df <- data %>% 
+  filter(data$Indicator == ("Total adult literacy rate (%)") | data$Indicator ==("Primary school net enrolment ratio (%)")| 
+           data$Indicator==("Pre-primary school participation - Gross enrolment ratio (%), male") | 
+           data$Indicator == ("Pre-primary school participation - Gross enrolment ratio (%), female") |
+           data$Indicator ==("Primary school participation - Gross enrolment ratio (%), male") |
+           data$Indicator == ("Primary school participation - Gross enrolment ratio (%), female") |  
+           data$Indicator == ("Primary school participation - Out-of-school rate of children of primary school age (%), male") |
+           data$Indicator==("Primary school participation - Out-of-school rate of children of primary school age (%), female") |
+           data$Indicator==("Primary school participation - Survival rate to last primary grade (%) , male") |
+           data$Indicator==("Primary school participation - Survival rate to last primary grade (%) , female") |
+           data$Indicator==("Father's support for learning") |
+           data$Indicator == ("Primary school net attendance ratio, Ratio of richest to poorest") |
+           data$Indicator == ("Primary school net enrolment ratio (%)")
+         )
+# Pivoting the data on Indicators
+p_data <- req_df %>%
+  select(Countries.and.areas,Indicator, Value) %>%
+  pivot_wider(names_from = Indicator, values_from = Value )
+p_data <- p_data %>%
+  rename(out_of_school_male=`Primary school participation - Out-of-school rate of children of primary school age (%), male`) %>%
+  rename(out_of_school_female=`Primary school participation - Out-of-school rate of children of primary school age (%), female`)
+```
+Most of the countries achieved literacy yet almost 40% of the countries are still under the average literacy rate of 80.
+
+```{r}
+p_data$newcol<-0
+colnames(p_data)[14] <- "adult_literacy_rate_percenatge"
+p_data$adult_literacy_rate_percenatge <- cut(p_data$`Total adult literacy rate (%)`, c(0,80,100), c("literacy below average", "literacy above average" ))
+d5<-p_data %>%
+  group_by(adult_literacy_rate_percenatge) %>%
+  summarise(number_of_countries= n()) %>%
+  drop_na()
+chart_5 <-d5 %>%
+  ggplot(aes(x =adult_literacy_rate_percenatge , y = number_of_countries)) + 
+    geom_bar(stat = 'identity', fill='lightcoral', width=0.2) + theme(axis.text.x = element_text(angle=0, hjust = 1)) + geom_text(aes(label=number_of_countries),vjust=1.6,  color="white",  position = position_dodge(0.5), size=1)+
+    labs(y="number of countries", x = "literacy") +labs(title= "62 countries are still under average literacy")+ theme(legend.position = "bottom")+ scale_fill_brewer(palette = "Set2")
+chart_5
+```
+# Percenatge of children enrolling in Primary schools
+```{r}
+p_data$newcol<-0
+colnames(p_data)[15] <- "primary_school_net_enrollment_ratio"
+p_data$primary_school_net_enrollment_ratio <- cut(p_data$`Primary school net enrolment ratio (%)`, c(0,10,20,30,40,50,60,70,80,90, 100), c("0-10", "10-20", "20-30","30-40", "40-50", "50-60", "60-70", "70-80", "80-90", "90-100" ))
+ 
+d4<-p_data %>%
+  group_by(primary_school_net_enrollment_ratio) %>%
+  summarise(number_of_countries= n()) %>%
+  drop_na()
+chart_6 <-d4 %>%
+  ggplot(aes(x =primary_school_net_enrollment_ratio , y = number_of_countries)) + 
+    geom_bar(stat = 'identity', fill='lightcoral') + theme(axis.text.x = element_text(angle=0, hjust = 1)) + geom_text(aes(label=number_of_countries),vjust=-0.5,  color="red3",  position = position_dodge(1), size=4)+
+    labs(y="number of countries", x = "literacy") +labs(title= "Primary school enrollment ratios across various countries")+ theme(legend.position = "bottom")+ scale_fill_brewer(palette = "Set1")
+chart_6
+```
+ 
+```{r fig, fig.width=11}
+library(ggalluvial)
+low_attendance<-p_data %>%
+  select(Countries.and.areas, `Primary school net enrolment ratio (%)`) %>%
+  arrange(`Primary school net enrolment ratio (%)`) %>%
+  head(n=4)
+chart_7 <- ggplot(data = low_attendance,
+               aes(axis1 = Countries.and.areas, axis2 = `Primary school net enrolment ratio (%)`, y=`Primary school net enrolment ratio (%)`))+ scale_x_discrete(limits = c("Country", "Enrollment"), expand = c(.02, .02)) + geom_alluvium(aes(fill =Countries.and.areas  )) +
+               geom_stratum() +
+               geom_text(stat = "stratum", aes(label = after_stat(stratum)), size=2.5) +   
+               theme_minimal() +
+               ggtitle("<50 percent net enrollement in Primary school") + scale_fill_brewer(palette = "Set1") 
+              
+chart_7
+```
+
+In these 4 countries, less than 50 per cent of the children are attending primary schools.
+
+```{r}
+d<- mutate(pivot_data, pre_primary = `Pre-primary school participation - Gross enrolment ratio (%), male` +
+             `Pre-primary school participation - Gross enrolment ratio (%), female`)
+d1<- mutate(d, Primary = `Primary school participation - Net enrolment ratio (%), male` +
+             `Primary school participation - Net enrolment ratio (%), female`)
+d2<- mutate(d1, Lower_secondary = `Lower secondary school participation - Net enrolment ratio (%), male` +
+             `Lower secondary school participation - Net enrolment ratio (%), female`)
+
+chart_2<- d2 %>%
+  select(Countries.and.areas, pre_primary, Primary, Lower_secondary) %>%
+  drop_na() %>%
+  gather(level, ratio, 2:4) %>%
+  ggplot(aes(x = reorder(Countries.and.areas, -ratio) , y = ratio , fill = level)) + 
+    geom_bar(stat = 'identity') + theme(axis.text.x = element_text(angle=45, hjust = 1)) + theme(legend.position = "bottom")+
+    labs(y="ratio", x = "region") +labs(title= "Pre-Primary, Primary, Lower-Secondary School enrollment in various regions") + scale_fill_brewer(palette = "Set2") +  theme(legend.justification = "top")
+chart_2
+```
+Ratio of children enrolling in Lower Secondary school is less in regions involving African countries. In East and Central Africa, number of children enrolling in school after primary level has gradually decreased.
+
+
+```{r}
+d3 <- pivot_data %>%
+  select(Countries.and.areas, `Primary school net attendance ratio, Urban`, `Primary school net attendance ratio, Rural`) %>%
+  gather(region, net_ratio, 2:3) %>%
+  drop_na()
+chart_4 <- d3 %>%
+  ggplot(aes(x = reorder(Countries.and.areas, -net_ratio) , y = net_ratio , fill = region)) + 
+    geom_bar(stat = 'identity') + theme(axis.text.x = element_text(angle=45, hjust = 1)) + theme(legend.position = "bottom") +
+    labs(y="ratio", x = "region") +labs(title= " Primary School Net Attendance ratios in Rural vs Urban areas") + scale_fill_brewer(palette = "Set2") +  theme(legend.justification = "top")
+chart_4
+```
+
+In developed and Developing nations, the ratios of children attending primary school are almost equal but in African regions, the differences in urban and rural education are more emphasized .
+
+```{r}
+chart_3<- pivot_data %>%
+  select(Countries.and.areas,`Primary school participation - Out-of-school rate of children of primary school age (%), male`,
+         `Primary school participation - Out-of-school rate of children of primary school age (%), female`) %>%
+  rename(out_of_school_male=`Primary school participation - Out-of-school rate of children of primary school age (%), male`) %>%
+  rename(out_of_school_female=`Primary school participation - Out-of-school rate of children of primary school age (%), female`) %>%
+  drop_na() %>%
+  gather(out_of_school, percentage, 2:3) %>%
+  ggplot(aes(x = reorder(Countries.and.areas, -percentage) , y = percentage , fill = out_of_school)) + 
+    geom_bar(stat = 'identity', alpha=0.9) + theme(axis.text.x = element_text(angle=45, hjust = 1)) + theme(legend.position = "top") +
+    labs(y="ratio", x = "region") +labs(title= "Out of School percentages female vs male in various regions") + scale_fill_brewer(palette = "Set2") +  theme(legend.justification = "right") 
+
+chart_3
+
+```
+
+
+Out of school percentages are greater for girls compared to boys.These differences are more pronounced in Africa.
+
+
+```{r}
+df1<-p_data %>%
+  select(Countries.and.areas, out_of_school_male, out_of_school_female)
+#Finding ratio of female and male out of school percentages.
+df1<- mutate(df1, out_of_school_ratio_female_to_male= out_of_school_female/out_of_school_male )
+# Filtering rows where there is highest disparity. ratio > 2
+index1<- which(df1$out_of_school_ratio_female_to_male>=2 )
+df2 <- df1[index1, c(1:4)]
+```
+
+
+```{r}
+chart_1<- df2 %>%
+  select(Countries.and.areas, out_of_school_male, out_of_school_female) %>%
+  drop_na() %>%
+  arrange(desc(out_of_school_female)) %>%
+  top_n(20, out_of_school_female) %>%
+  gather(perc, n, 2:3) %>%
+  ggplot(aes(x = reorder(Countries.and.areas, -n) , y = n , fill = perc)) + 
+    geom_bar(stat = 'identity', position = 'dodge') + theme(axis.text.x = element_text(angle=45, hjust = 1)) +
+    labs(y="perecentage", x = "Country", color="Gender") +labs(title= "Highligting differences in Out of school percenatages - female vs male")+ theme(legend.position = "bottom")+ scale_fill_brewer(palette = "Set2")
+
+chart_1
+```
+Least developed countries have a high percentages of children not attending schools. If we compare enrollment of male and females in school, more females are out of schools when compared to males. These differences are obvious in the below countries. In these countries, out of 3 children, there at least 2 girls that are not attending school.Though the out-of-school percentages are really low in highly developed ones such as UK and Norway, it still holds true.
+
